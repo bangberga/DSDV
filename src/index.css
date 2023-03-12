@@ -1,3 +1,20 @@
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --transition: all 0.2s linear;
+}
+text {
+  text-anchor: middle;
+  alignment-baseline: central;
+}
+.color-bar,
+.color-dash {
+  stroke: black;
+}
+.interval {
+  font-size: 0.7rem;
+}
+.boundary {
+  fill: none;
+  stroke: black;
+  stroke-width: 0.3;
 }
