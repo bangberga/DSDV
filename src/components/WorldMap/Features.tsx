@@ -1,13 +1,35 @@
-import { memo } from "react";
+import { RefObject, memo } from "react";
+import { GeoPath, GeoPermissibleObjects, ScaleSequential } from "d3";
 import { Feature, Geometry } from "geojson";
 import { useWorldMapContext } from "../providers/WorldMapProider";
 import { useDatasetContext } from "../providers/DatasetProvider";
 import { useColorLegendContext } from "../providers/ColorLegendProvider";
 import Dataset from "../../interfaces/Dataset";
-import { GeoPath, GeoPermissibleObjects, ScaleSequential } from "d3";
+
+export default function Features() {
+  const { path, countryRefs } = useWorldMapContext();
+  const { rowByNumericCode } = useDatasetContext();
+  const { scaleColor, nodataColor, strokeWidth } = useColorLegendContext();
+
+  if (!path || !rowByNumericCode) return <></>;
+
+  return (
+    <MemoizedFeatures
+      countryRefs={countryRefs}
+      path={path}
+      rowByNumericCode={rowByNumericCode}
+      scaleColor={scaleColor}
+      nodataColor={nodataColor}
+      strokeWidth={strokeWidth}
+    />
+  );
+}
 
 interface MemoizedFeaturesProps {
-  features: Feature<Geometry, {}>[];
+  countryRefs: {
+    feature: Feature<Geometry, {}>;
+    ref: RefObject<SVGPathElement>;
+  }[];
   rowByNumericCode: Map<string | undefined, Dataset>;
   scaleColor: ScaleSequential<string, never>;
   nodataColor: string;
@@ -15,30 +37,9 @@ interface MemoizedFeaturesProps {
   strokeWidth: number;
 }
 
-export default function Features() {
-  const { featured, path } = useWorldMapContext();
-  const { rowByNumericCode } = useDatasetContext();
-  const { scaleColor, nodataColor, strokeWidth } = useColorLegendContext();
-
-  if (!path || !rowByNumericCode) return <></>;
-
-  return (
-    <>
-      <MemoizedFeatures
-        features={featured.features}
-        path={path}
-        rowByNumericCode={rowByNumericCode}
-        scaleColor={scaleColor}
-        nodataColor={nodataColor}
-        strokeWidth={strokeWidth}
-      />
-    </>
-  );
-}
-
 const MemoizedFeatures = memo(function (props: MemoizedFeaturesProps) {
   const {
-    features,
+    countryRefs,
     rowByNumericCode,
     scaleColor,
     nodataColor,
@@ -48,9 +49,9 @@ const MemoizedFeatures = memo(function (props: MemoizedFeaturesProps) {
 
   return (
     <>
-      {features.map((feature, index) => {
-        const { id } = feature;
-        const data = rowByNumericCode.get(id as string);
+      {countryRefs.map((country, index) => {
+        const { feature, ref } = country;
+        const data = rowByNumericCode.get(feature.id as string);
         const percent =
           data &&
           data[
@@ -60,6 +61,7 @@ const MemoizedFeatures = memo(function (props: MemoizedFeaturesProps) {
         return (
           <path
             key={index}
+            ref={ref}
             className="countries"
             d={path(feature)!}
             fill={color}

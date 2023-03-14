@@ -1,4 +1,3 @@
-import { ScaleSequential, interpolateYlOrRd, scaleSequential } from "d3";
 import {
   Dispatch,
   ReactNode,
@@ -10,6 +9,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { ScaleSequential, interpolateYlOrRd, scaleSequential } from "d3";
 import FilteredInterval from "../../interfaces/FilteredInterval";
 
 interface ColorLegendProviderProps {
@@ -22,6 +22,8 @@ interface ColorLegendProviderProps {
   colorLegendOffsetText: number;
   spacing: number;
   strokeBold: number;
+  recordedInterval: number[];
+  nodataInterval: string[];
 }
 
 interface ColorLegendContextProps {
@@ -75,23 +77,18 @@ export default function ColorLegendProvider(props: ColorLegendProviderProps) {
     colorLegendOffsetHeight,
     spacing,
     strokeBold,
+    recordedInterval,
+    nodataInterval,
   } = props;
   const [filteredInterval, setFilteredInterval] = useState<FilteredInterval>({
     cur: null,
     prev: null,
   });
 
-  const recordedInterval = useMemo(
-    () => [0, 0.5, 1, 2.5, 5, 7.5, 10, 12.5, 15, 17],
-    []
-  );
-
   const recordedIntervalIndex = useMemo(
     () => Array.from(Array(recordedInterval.length).keys()),
     [recordedInterval]
   );
-
-  const nodataInterval = useMemo(() => ["No data"], []);
 
   const nodataIntervalIndex = useMemo(() => ["NODATA"], []);
 

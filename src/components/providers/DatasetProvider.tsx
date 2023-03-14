@@ -6,34 +6,41 @@ import {
   useMemo,
   useState,
 } from "react";
+import { group } from "d3";
 import useDataset from "../../hooks/useDataset";
 import Dataset from "../../interfaces/Dataset";
-import { group } from "d3";
 import useCode from "../../hooks/useCode";
 
 interface DatasetProviderProps {
   children: ReactNode | undefined;
   initialYear: number;
+  recordedInterval: number[];
 }
 
 interface DatasetContextProps {
   rowByNumericCode: Map<string | undefined, Dataset> | undefined;
+  numericCodeByAlphaCode: Map<string, string> | undefined;
+  alphaCodeByNumericCode: Map<string, string> | undefined;
   isLoading: boolean;
   isError: boolean;
   handleYear: (year: number) => void;
-  selectedGroup: Dataset[] | undefined;
+  datasetInterval: Map<number, Set<string>>;
+  allDatasetNumericCountryCode: Set<string>;
 }
 
 const DatasetContext = createContext<DatasetContextProps>({
   rowByNumericCode: undefined,
+  numericCodeByAlphaCode: undefined,
+  alphaCodeByNumericCode: undefined,
   isLoading: true,
   isError: false,
   handleYear: (year: number) => {},
-  selectedGroup: undefined,
+  datasetInterval: new Map(),
+  allDatasetNumericCountryCode: new Set(),
 });
 
 export default function DatasetProvider(props: DatasetProviderProps) {
-  const { children } = props;
+  const { children, recordedInterval } = props;
   const [year, setYear] = useState<number>(2019);
   const { dataset, isLoading, isError } = useDataset();
   const { codes } = useCode();
@@ -61,27 +68,69 @@ export default function DatasetProvider(props: DatasetProviderProps) {
     [codes]
   );
 
-  const rowByNumericCode = useMemo(
+  const alphaCodeByNumericCode = useMemo(
     () =>
-      selectedGroup &&
-      new Map(
-        selectedGroup.map((data) => {
-          const alphaCode = data.Code;
-          const numericCode = numericCodeByAlphaCode?.get(alphaCode);
-          return [numericCode, data];
-        })
+      codes &&
+      new Map<string, string>(
+        codes.map((code) => [code["country-code"], code["alpha-3"]])
       ),
-    [selectedGroup, numericCodeByAlphaCode]
+    [codes]
   );
+
+  const rowByNumericCode = useMemo(() => {
+    const map =
+      selectedGroup &&
+      numericCodeByAlphaCode &&
+      new Map(
+        selectedGroup.map((dataset) => {
+          const alphaCode = dataset.Code;
+          const numericCode = numericCodeByAlphaCode.get(alphaCode);
+          return [numericCode, dataset];
+        })
+      );
+    map?.delete(undefined);
+    return map;
+  }, [selectedGroup, numericCodeByAlphaCode]);
+
+  const datasetInterval = useMemo(() => {
+    const map = new Map<number, Set<string>>();
+    for (let i = 0; i < recordedInterval.length; i++) {
+      const start = recordedInterval[i];
+      const end =
+        i === recordedInterval.length - 1 ? Infinity : recordedInterval[i + 1];
+      const countryAlphaCodes = new Set<string>();
+      selectedGroup?.forEach((dataset) => {
+        const aids =
+          dataset[
+            "Prevalence - HIV/AIDS - Sex: Both - Age: 15-49 years (Percent)"
+          ];
+        if (aids >= start && aids <= end) countryAlphaCodes.add(dataset.Code);
+      });
+      map.set(recordedInterval[i], countryAlphaCodes);
+    }
+    return map;
+  }, [recordedInterval, selectedGroup]);
+
+  const allDatasetNumericCountryCode = useMemo(() => {
+    const set = new Set<string>();
+    selectedGroup?.forEach(({ Code }) => {
+      const numericCode = numericCodeByAlphaCode?.get(Code);
+      numericCode && set.add(numericCode);
+    });
+    return set;
+  }, [selectedGroup, numericCodeByAlphaCode]);
 
   return (
     <DatasetContext.Provider
       value={{
-        selectedGroup,
         rowByNumericCode,
+        numericCodeByAlphaCode,
+        alphaCodeByNumericCode,
         isError,
         isLoading,
         handleYear,
+        datasetInterval,
+        allDatasetNumericCountryCode,
       }}
     >
       {children}

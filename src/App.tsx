@@ -13,6 +13,9 @@ const colorLegendOffsetHeight = 20;
 const colorLegendOffsetText = 10;
 const spacing = 50;
 const strokeBold = 5;
+const recordedInterval = [0, 0.5, 1, 2.5, 5, 7.5, 10, 12.5, 15, 17];
+const nodataInterval = ["No data"];
+const blurOpacity = 0.1;
 
 function App() {
   return (
@@ -22,8 +25,11 @@ function App() {
         width={width}
         height={height}
         margin={margin}
+        strokeBold={strokeBold}
+        strokeWidth={strokeWidth}
+        blurOpacity={blurOpacity}
       >
-        <DatasetProvider initialYear={2019}>
+        <DatasetProvider initialYear={2019} recordedInterval={recordedInterval}>
           <ColorLegendProvider
             nodataColor="white"
             strokeWidth={strokeWidth}
@@ -33,6 +39,8 @@ function App() {
             colorLegendOffsetText={colorLegendOffsetText}
             spacing={spacing}
             strokeBold={strokeBold}
+            recordedInterval={recordedInterval}
+            nodataInterval={nodataInterval}
           >
             <WorldMap />
           </ColorLegendProvider>

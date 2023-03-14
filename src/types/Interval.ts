@@ -1,1 +1,1 @@
-export type Interval = number | "NODATA" | null;
+export type Interval = number | "No data" | null;

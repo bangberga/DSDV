@@ -1,4 +1,11 @@
-import { ReactNode, createContext, useContext, useMemo } from "react";
+import {
+  ReactNode,
+  RefObject,
+  createContext,
+  createRef,
+  useContext,
+  useMemo,
+} from "react";
 import {
   geoNaturalEarth1,
   GeoPath,
@@ -6,7 +13,7 @@ import {
   GeoPermissibleObjects,
   GeoProjection,
 } from "d3";
-import { MultiLineString, FeatureCollection, Geometry } from "geojson";
+import { MultiLineString, FeatureCollection, Geometry, Feature } from "geojson";
 import { feature, mesh } from "topojson-client";
 import useWorldAtlas from "../../hooks/useTopology";
 import { Margin } from "../../types/Dimensions";
@@ -17,10 +24,16 @@ interface WorldMapProviderProps {
   width: number;
   height: number;
   margin: Margin;
+  strokeBold: number;
+  strokeWidth: number;
+  blurOpacity: number;
 }
 
 interface WorldMapContextProps {
-  featured: FeatureCollection<Geometry, {}>;
+  countryRefs: {
+    feature: Feature<Geometry, {}>;
+    ref: RefObject<SVGPathElement>;
+  }[];
   interiors: MultiLineString | undefined;
   outeriors: MultiLineString | undefined;
   isLoading: boolean;
@@ -32,10 +45,13 @@ interface WorldMapContextProps {
   margin: Margin;
   innerWidth: number;
   innerHeight: number;
+  strokeBold: number;
+  strokeWidth: number;
+  blurOpacity: number;
 }
 
 const WorldMapContext = createContext<WorldMapContextProps>({
-  featured: { type: "FeatureCollection", features: [] },
+  countryRefs: [],
   interiors: undefined,
   outeriors: undefined,
   isLoading: true,
@@ -47,10 +63,22 @@ const WorldMapContext = createContext<WorldMapContextProps>({
   innerWidth: 0,
   innerHeight: 0,
   margin: {} as Margin,
+  strokeBold: 0,
+  strokeWidth: 0,
+  blurOpacity: 0,
 });
 
 export default function WorldMapProvider(props: WorldMapProviderProps) {
-  const { children, object, width, height, margin } = props;
+  const {
+    children,
+    object,
+    width,
+    height,
+    margin,
+    strokeBold,
+    blurOpacity,
+    strokeWidth,
+  } = props;
   const { topology, isLoading, isError } = useWorldAtlas();
 
   const { left, bottom, right, top } = margin;
@@ -103,10 +131,19 @@ export default function WorldMapProvider(props: WorldMapProviderProps) {
 
   const path = useMemo(() => projection && geoPath(projection), [projection]);
 
+  const countryRefs = useMemo(
+    () =>
+      featured.features.map((feature) => ({
+        feature,
+        ref: createRef<SVGPathElement>(),
+      })),
+    [featured]
+  );
+
   return (
     <WorldMapContext.Provider
       value={{
-        featured,
+        countryRefs,
         interiors,
         outeriors,
         projection,
@@ -118,6 +155,9 @@ export default function WorldMapProvider(props: WorldMapProviderProps) {
         innerWidth,
         innerHeight,
         margin,
+        blurOpacity,
+        strokeBold,
+        strokeWidth,
       }}
     >
       {children}

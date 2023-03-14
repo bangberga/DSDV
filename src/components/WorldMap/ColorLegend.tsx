@@ -7,41 +7,51 @@ import {
   useEffect,
   useMemo,
 } from "react";
-import { useColorLegendContext } from "../providers/ColorLegendProvider";
 import { ScaleSequential } from "d3";
+import { useColorLegendContext } from "../providers/ColorLegendProvider";
 import { Interval } from "../../types/Interval";
 import { useWorldMapContext } from "../providers/WorldMapProider";
+import { useDatasetContext } from "../providers/DatasetProvider";
 
 export default function ColorLegend() {
   const {
     scaleColor,
     recordedInterval,
-    recordedIntervalIndex,
     nodataInterval,
-    nodataIntervalIndex,
     filteredInterval,
     nodataColor,
     setFilteredInterval,
     colorBarsRefs,
     nodataRef,
-    strokeWidth,
     widthPercent,
     colorLegendHeight,
     spacing,
     colorLegendOffsetHeight,
     colorLegendOffsetText,
-    strokeBold,
+    strokeWidth: strokeWidthColorLegend,
+    strokeBold: strokeBoldColorLegend,
   } = useColorLegendContext();
   const {
     innerWidth,
     innerHeight,
     margin: { left },
+    countryRefs,
+    blurOpacity,
+    strokeBold: strokeBoldCountries,
+    strokeWidth: strokeWidthCountries,
   } = useWorldMapContext();
+  const {
+    alphaCodeByNumericCode,
+    datasetInterval,
+    allDatasetNumericCountryCode,
+  } = useDatasetContext();
 
   const colorLegendWidth = innerWidth * widthPercent - spacing;
   const bandwidth = colorLegendWidth / (recordedInterval.length + 1);
   const offsetWidth = (1 - widthPercent) / 2;
-  const boldStrokeWidth = strokeWidth * strokeBold;
+  const boldStrokeWidthColorLegend =
+    strokeWidthColorLegend * strokeBoldColorLegend;
+  const boldStrokeWidthCountries = strokeWidthCountries * strokeBoldCountries;
 
   const handleMouse = useCallback(
     (newInterval: Interval) =>
@@ -53,26 +63,88 @@ export default function ColorLegend() {
 
   useEffect(() => {
     const { cur, prev } = filteredInterval;
-    if (prev === "NODATA") {
-      nodataRef.current?.setAttribute("stroke-width", strokeWidth.toString());
-    } else if (typeof prev === "number") {
-      colorBarsRefs[prev].current?.setAttribute(
-        "stroke-width",
-        strokeWidth.toString()
-      );
-    }
-    if (cur === "NODATA") {
+    if (prev === "No data") {
       nodataRef.current?.setAttribute(
         "stroke-width",
-        boldStrokeWidth.toString()
+        strokeWidthColorLegend.toString()
       );
-    } else if (typeof cur === "number") {
-      colorBarsRefs[cur].current?.setAttribute(
+    } else if (typeof prev === "number") {
+      colorBarsRefs[recordedInterval.indexOf(prev)].current?.setAttribute(
         "stroke-width",
-        boldStrokeWidth.toString()
+        strokeWidthColorLegend.toString()
       );
     }
-  }, [filteredInterval]);
+    if (cur === "No data") {
+      nodataRef.current?.setAttribute(
+        "stroke-width",
+        boldStrokeWidthColorLegend.toString()
+      );
+    } else if (typeof cur === "number") {
+      colorBarsRefs[recordedInterval.indexOf(cur)].current?.setAttribute(
+        "stroke-width",
+        boldStrokeWidthColorLegend.toString()
+      );
+    }
+  }, [
+    filteredInterval,
+    colorBarsRefs,
+    recordedInterval,
+    nodataRef,
+    strokeWidthColorLegend,
+    boldStrokeWidthColorLegend,
+  ]);
+
+  useEffect(() => {
+    const { cur } = filteredInterval;
+    if (!alphaCodeByNumericCode) return;
+    countryRefs.forEach((country) => {
+      const { ref } = country;
+      ref.current?.setAttribute(
+        "stroke-width",
+        strokeWidthCountries.toString()
+      );
+      ref.current?.setAttribute("opacity", "1");
+    });
+    if (typeof cur === "number") {
+      const filteredCountries = datasetInterval.get(cur);
+      countryRefs.forEach((country) => {
+        const {
+          ref,
+          feature: { id },
+        } = country;
+        if (!id) return;
+        const alphaCode = alphaCodeByNumericCode.get(id.toString());
+        if (!alphaCode) return;
+        if (filteredCountries?.has(alphaCode))
+          ref.current?.setAttribute(
+            "stroke-width",
+            boldStrokeWidthCountries.toString()
+          );
+        else ref.current?.setAttribute("opacity", blurOpacity.toString());
+      });
+    } else if (cur === "No data") {
+      countryRefs.forEach((country) => {
+        const {
+          ref,
+          feature: { id },
+        } = country;
+        if (!id || !allDatasetNumericCountryCode.has(id.toString()))
+          ref.current?.setAttribute(
+            "stroke-width",
+            boldStrokeWidthCountries.toString()
+          );
+        else ref.current?.setAttribute("opacity", blurOpacity.toString());
+      });
+    }
+  }, [
+    filteredInterval,
+    datasetInterval,
+    countryRefs,
+    alphaCodeByNumericCode,
+    strokeWidthCountries,
+    boldStrokeWidthCountries,
+    blurOpacity,
+  ]);
 
   return (
     <g
@@ -88,11 +160,10 @@ export default function ColorLegend() {
         defaultColor={nodataColor}
         offsetTextX={bandwidth / 2}
         offsetTextY={colorLegendOffsetText}
-        strokeWidth={strokeWidth}
+        strokeWidth={strokeWidthColorLegend}
         recordedInterval={nodataInterval}
         handleMouse={handleMouse}
         mouseLeaveProps={null}
-        mouseEnterProps={nodataIntervalIndex}
         nib={false}
       />
       <ColorsContainer
@@ -103,12 +174,11 @@ export default function ColorLegend() {
         refs={colorBarsRefs}
         scaleColor={scaleColor}
         defaultColor={nodataColor}
-        strokeWidth={strokeWidth}
+        strokeWidth={strokeWidthColorLegend}
         offsetTextX={0}
         offsetTextY={colorLegendOffsetText}
         handleMouse={handleMouse}
         mouseLeaveProps={null}
-        mouseEnterProps={recordedIntervalIndex}
         nib={true}
         recordUnit="%"
       />
@@ -127,9 +197,8 @@ interface ColorsContainerProps {
   offsetTextY: number;
   defaultColor: string;
   scaleColor?: ScaleSequential<string, never>;
-  handleMouse?: (interval: number) => void;
+  handleMouse?: (interval: Interval) => void;
   mouseLeaveProps?: any;
-  mouseEnterProps?: any[];
   nib?: boolean;
   recordUnit?: string;
 }
@@ -144,7 +213,6 @@ const ColorsContainer = memo(function (props: ColorsContainerProps) {
     defaultColor,
     handleMouse,
     mouseLeaveProps,
-    mouseEnterProps,
     refs,
     strokeWidth,
     offsetTextX,
@@ -182,7 +250,7 @@ const ColorsContainer = memo(function (props: ColorsContainerProps) {
             nib={nib}
             background={scaleColor ? scaleColor(+record) : defaultColor}
             handleMouse={handleMouse}
-            mouseEnterProps={mouseEnterProps?.[i]}
+            mouseEnterProps={record}
             strokeWidth={strokeWidth}
           />
         );
