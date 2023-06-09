@@ -3,11 +3,8 @@ import { useLineChartContext } from "../providers/LineChartProvider";
 import AxisLeft from "./AxisLeft";
 import AxisBottom from "./AxisBottom";
 import Marks from "./Marks";
-import Plane from "./Plane";
-import Tooltip from "./Tooltip";
-import Pointers from "./Pointers";
 
-export default function LineChart() {
+export default function BarChart() {
   const {
     width,
     height,
@@ -17,7 +14,7 @@ export default function LineChart() {
     show,
   } = useLineChartContext();
 
-  if (range[0] === range[1]) return <></>;
+  if (range[0] !== range[1]) return <></>;
 
   if (countryCodes.length < 1)
     return (
@@ -32,9 +29,6 @@ export default function LineChart() {
         <AxisLeft />
         <AxisBottom />
         <Marks />
-        <Plane />
-        <Tooltip />
-        <Pointers />
       </g>
     </SVGWrapper>
   );

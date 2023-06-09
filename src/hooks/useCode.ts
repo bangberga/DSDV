@@ -11,6 +11,5 @@ export default function useCode() {
     queryKey: ["codes"],
     queryFn: () => csv(csvUrl.href),
   });
-
   return { codes: data as Code[] | undefined, isLoading, isError };
 }

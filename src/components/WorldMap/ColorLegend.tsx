@@ -6,107 +6,62 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useState,
 } from "react";
 import { ScaleSequential } from "d3";
 import { useColorLegendContext } from "../providers/ColorLegendProvider";
 import { Interval } from "../../types/Interval";
 import { useWorldMapContext } from "../providers/WorldMapProider";
 import { useDatasetContext } from "../providers/DatasetProvider";
+import { useYearContext } from "../providers/YearProvider";
+import { styled } from "styled-components";
 
 export default function ColorLegend() {
   const {
-    scaleColor,
-    recordedInterval,
-    nodataInterval,
-    filteredInterval,
-    nodataColor,
-    setFilteredInterval,
-    colorBarsRefs,
-    nodataRef,
     widthPercent,
     colorLegendHeight,
     spacing,
     colorLegendOffsetHeight,
     colorLegendOffsetText,
-    strokeWidth: strokeWidthColorLegend,
-    strokeBold: strokeBoldColorLegend,
+    nodataColor,
   } = useColorLegendContext();
   const {
     innerWidth,
     innerHeight,
     margin: { left },
     countryRefs,
-    blurOpacity,
-    strokeBold: strokeBoldCountries,
-    strokeWidth: strokeWidthCountries,
   } = useWorldMapContext();
   const {
     alphaCodeByNumericCode,
-    datasetInterval,
-    allDatasetNumericCountryCode,
+    datasetIntervals,
+    allDatasetNumericCountryCodes,
+    colorBarsRefs,
+    nodataRef,
+    scaleColor,
+    recordedInterval,
+    nodataInterval,
   } = useDatasetContext();
+  const { year } = useYearContext();
+
+  const [filteredInterval, setFilteredInterval] = useState<Interval>(null);
 
   const colorLegendWidth = innerWidth * widthPercent - spacing;
   const bandwidth = colorLegendWidth / (recordedInterval.length + 1);
   const offsetWidth = (1 - widthPercent) / 2;
-  const boldStrokeWidthColorLegend =
-    strokeWidthColorLegend * strokeBoldColorLegend;
-  const boldStrokeWidthCountries = strokeWidthCountries * strokeBoldCountries;
 
   const handleMouse = useCallback(
-    (newInterval: Interval) =>
-      setFilteredInterval((prev) => ({ prev: prev.cur, cur: newInterval })),
+    (newInterval: Interval) => setFilteredInterval(newInterval),
     []
   );
 
   const nodataRefs = useMemo(() => [nodataRef], [nodataRef]);
 
   useEffect(() => {
-    const { cur, prev } = filteredInterval;
-    if (prev === "No data") {
-      nodataRef.current?.setAttribute(
-        "stroke-width",
-        strokeWidthColorLegend.toString()
-      );
-    } else if (typeof prev === "number") {
-      colorBarsRefs[recordedInterval.indexOf(prev)].current?.setAttribute(
-        "stroke-width",
-        strokeWidthColorLegend.toString()
-      );
-    }
-    if (cur === "No data") {
-      nodataRef.current?.setAttribute(
-        "stroke-width",
-        boldStrokeWidthColorLegend.toString()
-      );
-    } else if (typeof cur === "number") {
-      colorBarsRefs[recordedInterval.indexOf(cur)].current?.setAttribute(
-        "stroke-width",
-        boldStrokeWidthColorLegend.toString()
-      );
-    }
-  }, [
-    filteredInterval,
-    colorBarsRefs,
-    recordedInterval,
-    nodataRef,
-    strokeWidthColorLegend,
-    boldStrokeWidthColorLegend,
-  ]);
-
-  useEffect(() => {
-    const { cur } = filteredInterval;
-    if (!alphaCodeByNumericCode) return;
-    countryRefs.forEach((country) => {
-      const { ref } = country;
-      ref.current?.setAttribute(
-        "stroke-width",
-        strokeWidthCountries.toString()
-      );
-      ref.current?.setAttribute("opacity", "1");
-    });
-    if (typeof cur === "number") {
-      const filteredCountries = datasetInterval.get(cur);
+    if (!alphaCodeByNumericCode || !datasetIntervals) return;
+    if (typeof filteredInterval === "number") {
+      const filteredCountries = datasetIntervals
+        .get(year)
+        ?.get(filteredInterval);
       countryRefs.forEach((country) => {
         const {
           ref,
@@ -115,35 +70,33 @@ export default function ColorLegend() {
         if (!id) return;
         const alphaCode = alphaCodeByNumericCode.get(id.toString());
         if (!alphaCode) return;
-        if (filteredCountries?.has(alphaCode))
-          ref.current?.setAttribute(
-            "stroke-width",
-            boldStrokeWidthCountries.toString()
-          );
-        else ref.current?.setAttribute("opacity", blurOpacity.toString());
+        if (filteredCountries?.has(alphaCode)) {
+          ref.current?.classList.add("filtered");
+        } else ref.current?.classList.add("blured");
       });
-    } else if (cur === "No data") {
+    } else if (filteredInterval === "No data") {
       countryRefs.forEach((country) => {
         const {
           ref,
           feature: { id },
         } = country;
-        if (!id || !allDatasetNumericCountryCode.has(id.toString()))
-          ref.current?.setAttribute(
-            "stroke-width",
-            boldStrokeWidthCountries.toString()
-          );
-        else ref.current?.setAttribute("opacity", blurOpacity.toString());
+        if (!id || !allDatasetNumericCountryCodes?.has(id.toString())) {
+          ref.current?.classList.add("filtered");
+        } else ref.current?.classList.add("blured");
       });
     }
+    return () => {
+      countryRefs.forEach((country) => {
+        const { ref } = country;
+        ref.current?.classList.remove("filtered", "blured");
+      });
+    };
   }, [
     filteredInterval,
-    datasetInterval,
+    datasetIntervals,
+    year,
     countryRefs,
     alphaCodeByNumericCode,
-    strokeWidthCountries,
-    boldStrokeWidthCountries,
-    blurOpacity,
   ]);
 
   return (
@@ -160,7 +113,6 @@ export default function ColorLegend() {
         defaultColor={nodataColor}
         offsetTextX={bandwidth / 2}
         offsetTextY={colorLegendOffsetText}
-        strokeWidth={strokeWidthColorLegend}
         recordedInterval={nodataInterval}
         handleMouse={handleMouse}
         mouseLeaveProps={null}
@@ -174,7 +126,6 @@ export default function ColorLegend() {
         refs={colorBarsRefs}
         scaleColor={scaleColor}
         defaultColor={nodataColor}
-        strokeWidth={strokeWidthColorLegend}
         offsetTextX={0}
         offsetTextY={colorLegendOffsetText}
         handleMouse={handleMouse}
@@ -192,7 +143,6 @@ interface ColorsContainerProps {
   translateX: number;
   recordedInterval: number[] | string[];
   refs: RefObject<SVGPolygonElement>[];
-  strokeWidth: number;
   offsetTextX: number;
   offsetTextY: number;
   defaultColor: string;
@@ -214,7 +164,6 @@ const ColorsContainer = memo(function (props: ColorsContainerProps) {
     handleMouse,
     mouseLeaveProps,
     refs,
-    strokeWidth,
     offsetTextX,
     offsetTextY,
     nib: isNib,
@@ -251,7 +200,6 @@ const ColorsContainer = memo(function (props: ColorsContainerProps) {
             background={scaleColor ? scaleColor(+record) : defaultColor}
             handleMouse={handleMouse}
             mouseEnterProps={record}
-            strokeWidth={strokeWidth}
           />
         );
       })}
@@ -267,7 +215,6 @@ interface ColorBarProps {
   width: number;
   height: number;
   translateX: number;
-  strokeWidth: number;
   background: string;
   handleMouse?: (...props: any) => void;
   mouseEnterProps?: any;
@@ -288,27 +235,18 @@ const ColorBar = forwardRef(function (
     background,
     handleMouse,
     mouseEnterProps,
-    strokeWidth,
   } = props;
 
   return (
-    <g transform={`translate(${translateX},0)`}>
-      <text className="interval" y={-offsetTextY} x={offsetTextX}>
+    <ColorBarWrapper transform={`translate(${translateX},0)`}>
+      <text y={-offsetTextY} x={offsetTextX}>
         {record}
       </text>
-      <line
-        strokeWidth={strokeWidth}
-        y2={-4}
-        x1={offsetTextX}
-        x2={offsetTextX}
-        className="color-dash"
-      />
+      <line y2={-4} x1={offsetTextX} x2={offsetTextX} />
       <polygon
         points={`0,0 ${width},0 ${nib} ${width},${height} 0,${height}`}
         ref={ref}
         fill={background}
-        strokeWidth={strokeWidth}
-        className="color-bar"
         onMouseEnter={
           handleMouse &&
           function () {
@@ -316,6 +254,23 @@ const ColorBar = forwardRef(function (
           }
         }
       />
-    </g>
+    </ColorBarWrapper>
   );
 });
+
+const ColorBarWrapper = styled.g`
+  polygon,
+  line {
+    stroke: black;
+    stroke-width: 0.2;
+    &.filtered,
+    &:hover {
+      stroke-width: 1.5;
+    }
+  }
+  text {
+    font-size: 0.7rem;
+    stroke: black;
+    stroke-width: 0.4;
+  }
+`;

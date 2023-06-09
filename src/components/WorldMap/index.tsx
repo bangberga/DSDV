@@ -1,23 +1,28 @@
-import { useWorldMapContext } from "../providers/WorldMapProider";
-import Error from "./Error";
+import Error from "../Error";
 import Features from "./Features";
 import Boundary from "./Boundary";
-import Loading from "./Loading";
+import { styled } from "styled-components";
+import Loading from "../Loading";
 import Sphere from "./Sphere";
 import ColorLegend from "./ColorLegend";
+import { useWorldMapContext } from "../providers/WorldMapProider";
 
 export default function WorldMap() {
-  const { isLoading, isError, width, height } = useWorldMapContext();
+  const { width, height, isError, isLoading, show } = useWorldMapContext();
 
-  if (isLoading) return <Loading />;
+  if (isLoading) return <Loading width={width} height={height} />;
   if (isError) return <Error />;
 
   return (
-    <svg width={width} height={height}>
+    <SVGWrapper width={width} height={height} show={"" + show}>
       <Sphere />
       <Features />
       <Boundary />
       <ColorLegend />
-    </svg>
+    </SVGWrapper>
   );
 }
+
+const SVGWrapper = styled.svg<{ show: string }>`
+  display: ${({ show }) => (show === "true" ? "block" : "none")};
+`;

@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
 import styled from "styled-components";
-import { useLineChartContext } from "../providers/LineChartProvider";
+import { useTooltipContext } from "../providers/TooltipProvider";
 import { useYearContext } from "../providers/YearProvider";
 
 export default function () {
@@ -16,7 +16,7 @@ export default function () {
     setInformationWidth,
     informationHeight,
     setInformationHeight,
-  } = useLineChartContext();
+  } = useTooltipContext();
   const { year } = useYearContext();
 
   const containerRef = useRef<SVGGElement>(null);

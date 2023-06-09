@@ -1,9 +1,12 @@
+import { styled } from "styled-components";
 import { useWorldMapContext } from "../providers/WorldMapProider";
 
 export default function Sphere() {
   const { path } = useWorldMapContext();
 
-  if (!path) return <></>;
-
-  return <path d={path({ type: "Sphere" })!} fill="#fbfbfb" />;
+  return <PathWrapper d={path({ type: "Sphere" })!} />;
 }
+
+const PathWrapper = styled.path`
+  fill: #fbfbfb;
+`;

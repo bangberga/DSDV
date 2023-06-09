@@ -4,6 +4,10 @@ export default interface Dataset {
   "Prevalence - HIV/AIDS - Sex: Both - Age: 15-49 years (Percent)": number;
   Year: number;
 }
+export type FilterKeysDataset<T> = keyof Pick<
+  Dataset,
+  { [K in keyof Dataset]: Dataset[K] extends T ? K : never }[keyof Dataset]
+>;
 
 export function instanceofDataset(data: unknown): data is Dataset {
   if (!data || typeof data !== "object") return false;

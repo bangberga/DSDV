@@ -9,7 +9,7 @@ const jsonUrl = new URL(
 export default function useWorldAtlas() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["topology"],
-    queryFn: () => json<Topology<Objects<{}>>>(jsonUrl.href),
+    queryFn: () => json<Topology<Objects<{ name: string }>>>(jsonUrl.href),
   });
 
   return { topology: data, isLoading, isError };

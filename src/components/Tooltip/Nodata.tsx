@@ -1,9 +1,9 @@
 import { styled } from "styled-components";
-import { useLineChartContext } from "../providers/LineChartProvider";
+import { useTooltipContext } from "../providers/TooltipProvider";
 import { useYearContext } from "../providers/YearProvider";
 
 export default function () {
-  const { dataset, innerWidth, innerHeight } = useLineChartContext();
+  const { dataset, innerWidth, innerHeight } = useTooltipContext();
   const { year } = useYearContext();
 
   if (dataset) return <></>;

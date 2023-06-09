@@ -1,9 +1,9 @@
-import { useLineChartContext } from "../providers/LineChartProvider";
+import { useTooltipContext } from "../providers/TooltipProvider";
 import { useYearContext } from "../providers/YearProvider";
 
 export default function () {
   const { xScale, yScale, innerHeight, titleHeight, aidsByYear, scaleColor } =
-    useLineChartContext();
+    useTooltipContext();
   const { year } = useYearContext();
 
   if (!xScale || !yScale || !scaleColor || !aidsByYear) return <></>;

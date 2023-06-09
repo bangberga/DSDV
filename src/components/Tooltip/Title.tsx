@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef } from "react";
-import { useLineChartContext } from "../providers/LineChartProvider";
+import { useTooltipContext } from "../providers/TooltipProvider";
 import { styled } from "styled-components";
 
 export default function () {
-  const { data, innerWidth, setTitleHeight } = useLineChartContext();
+  const { data, innerWidth, setTitleHeight } = useTooltipContext();
   const titleRef = useRef<SVGTextElement>(null);
 
   useLayoutEffect(() => {

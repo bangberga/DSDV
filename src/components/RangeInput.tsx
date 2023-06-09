@@ -1,50 +1,110 @@
-import { useCallback, useEffect, useState } from "react";
-import { FaPlay, FaPause } from "react-icons/fa";
-import styled from "styled-components";
-import { useYearContext } from "./providers/YearProvider";
+import { useState, useCallback, ChangeEvent, useEffect } from "react";
+import {
+  TbPlayerTrackNextFilled,
+  TbPlayerTrackPrevFilled,
+} from "react-icons/tb";
+import { styled } from "styled-components";
+import { useLineChartContext } from "./providers/LineChartProvider";
 
-export default function RangeInput() {
-  const { start, end, year, handleYear, nextYear } = useYearContext();
-  const [isRun, setIsRun] = useState<boolean>(false);
+interface RangeInputProps {
+  start: number;
+  end: number;
+  width: number;
+}
 
-  const toggle = useCallback(() => {
-    if (year === end) nextYear();
-    setIsRun((prev) => !prev);
-  }, [year, end, nextYear]);
+export default function RangeInput(props: RangeInputProps) {
+  const { start, end, width } = props;
+  const { handleRange, show } = useLineChartContext();
+  const [first, setFirst] = useState<number>(start);
+  const [second, setSecond] = useState<number>(end);
+
+  const handleFirst = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const value = +e.target.value;
+      setFirst(value > second ? second : value);
+    },
+    [second]
+  );
+
+  const handleSecond = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const value = +e.target.value;
+      setSecond(value < first ? first : value);
+    },
+    [first]
+  );
+
+  const handleSlide = useCallback(
+    (value: number) => {
+      if ((value < 0 && first === start) || (value > 0 && second === end))
+        return;
+      setFirst((prev) => prev + value);
+      setSecond((prev) => prev + value);
+    },
+    [first, second]
+  );
 
   useEffect(() => {
-    let interval: number;
-    if (isRun) {
-      interval = setInterval(() => {
-        if (year === end) return setIsRun(false);
-        nextYear();
-      }, 200);
-    }
-    return () => {
-      clearInterval(interval);
-    };
-  }, [isRun, nextYear, year, end]);
+    handleRange([first, second]);
+  }, [first, second, handleRange]);
 
   return (
-    <Wrapper>
-      <button onClick={toggle}>{isRun ? <FaPause /> : <FaPlay />}</button>
-      <span>{start}</span>
+    <Wrapper width={width} show={show + ""}>
+      <button
+        onMouseDownCapture={() => handleSlide(-1)}
+        style={{ justifySelf: "end" }}
+      >
+        <TbPlayerTrackPrevFilled />
+      </button>
       <input
-        type="range"
+        type="number"
         min={start}
         max={end}
-        value={year}
-        onChange={(e) => {
-          handleYear(+e.target.value);
-        }}
+        value={first}
+        onChange={handleFirst}
       />
-      <span>{end}</span>
+      <input
+        type="number"
+        min={start}
+        max={end}
+        value={second}
+        onChange={handleSecond}
+      />
+      <button
+        onMouseDownCapture={() => handleSlide(1)}
+        style={{ justifySelf: "start" }}
+      >
+        <TbPlayerTrackNextFilled />
+      </button>
     </Wrapper>
   );
 }
 
-const Wrapper = styled.div`
-  input[type="range"] {
-    cursor: col-resize;
+const Wrapper = styled.section<{ width: number; show: string }>`
+  display: ${({ show }) => (show === "true" ? "flex" : "none")};
+  width: ${({ width }) => width}px;
+  justify-content: center;
+  align-items: center;
+  column-gap: 5px;
+  input {
+    padding: 0 5px;
+    border: 1px solid grey;
+    color: grey;
+  }
+  button {
+    border: none;
+    background: grey;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s linear;
+    &:hover {
+      background: dodgerblue;
+    }
   }
 `;
